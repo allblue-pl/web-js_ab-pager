@@ -17,6 +17,7 @@ class Pager
         this._currentPage = null;
 
         this._listeners_OnPageChanged = [];
+        this._listeners_OnPageSet = {};
     }
 
     base(uriBase)
@@ -77,12 +78,13 @@ class Pager
         js0.args(arguments, 'string', 'string', 'function');
 
         this._pages.set(name, new Pager.Page(name, uri));
-
+        
         if (onPageSetListener !== null) {
-            this._listeners_OnPageChanged.push((page, sourcePageName) => {
-                if (page.name === name)
-                    onPageSetListener(sourcePageName);
-            });
+            this._listeners_OnPageSet[name] = onPageSetListener;
+            // this._listeners_OnPageChanged.push((page, sourcePageName) => {
+            //     if (page.name === name)
+            //         onPageSetListener(sourcePageName);
+            // });
         }
 
         return this;
@@ -110,8 +112,14 @@ class Pager
         else
             window.history.replaceState({}, this._currentPage.title, uri);
 
+        let currentPage = {
+            name: this._currentPageInfo.name,
+            args: this._currentPageInfo.args,
+        };
         for (let i = 0; i < this._listeners_OnPageChanged.length; i++)
-            this._listeners_OnPageChanged[i](this._currentPage, source);
+            this._listeners_OnPageChanged[i](currentPage, source);
+        if (currentPage.name in this._listeners_OnPageSet)
+            this._listeners_OnPageSet[currentPage.name]();
     }
 
     setUri(uri, pushState)
@@ -157,14 +165,14 @@ class Pager
         let uriArray = uri.split('/');
         if (uriArray[uriArray.length - 1] === '')
             uriArray.pop();
-        
+
         if (uriArray.length === 0)
             uriArray.push('');
 
         for (let [ pageName, page ] of this._pages) {
             let aliasArray = page.uri.split('/');
 
-            if (aliasArray.length != uriArray.length)
+            if (aliasArray.length !== uriArray.length)
                 continue;
 
             let args = {};
