@@ -27,7 +27,12 @@ class Pager
         return this;
     }
 
-    getPageUri(uri, args = {}, parsedArgs = null, pathOnly = false)
+    getPageUri(pageName, args = {})
+    {
+        throw new Error('Not implemented.');
+    }
+
+    getUri(uri, args = {}, parsedArgs = null, pathOnly = false)
     {
         var uriArgs = uri === '' ? [] : uri.split('/');
         if (uriArgs[uriArgs.length - 1] === '')
@@ -104,7 +109,7 @@ class Pager
             args: {}
         };
 
-        let uri = this.getPageUri(this._currentPage.uri, args,
+        let uri = this.getUri(this._currentPage.uri, args,
                 this._currentPageInfo.args);
 
         if (pushState)
@@ -133,7 +138,7 @@ class Pager
     {
         var argName = uriArg.substring(1);
         var argDefault = uriArg;
-        var argNameArray = argName.split('#');
+        var argNameArray = argName.split('=');
         if (argNameArray.length > 1) {
             argName = argNameArray[0];
             argDefault = argNameArray[1];
