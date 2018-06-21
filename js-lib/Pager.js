@@ -7,24 +7,31 @@ const
 class Pager
 {
 
-    constructor()
+    get base() {
+        return this._base;
+    }
+
+    get current() {
+        return this._currentPageInfo;
+    }
+
+    get pages() {
+        return this._pages;
+    }
+
+
+    constructor(base = '/')
     {
         this._initialized = false;
 
-        this._base = '/';
+        this._base = base;
         this._pages = new Map();
 
         this._currentPage = null;
+        this._currentPageInfo = null;
 
         this._listeners_OnPageChanged = [];
         this._listeners_OnPageSet = {};
-    }
-
-    base(uriBase)
-    {
-        this._base = uriBase;
-
-        return this;
     }
 
     getPageUri(pageName, args = {})
@@ -48,6 +55,9 @@ class Pager
             var argInfo = this._getUriArgInfo(uriArgs[i]);
 
             if (!(argInfo.name in args)) {
+                if (argInfo.defaultValue === null)
+                    throw new Error(`Uri arg '${argInfo.name}' not set.`);
+
                 pUri += argInfo.defaultValue + '/';
 
                 if (parsedArgs !== null)
@@ -137,7 +147,7 @@ class Pager
     _getUriArgInfo(uriArg)
     {
         var argName = uriArg.substring(1);
-        var argDefault = uriArg;
+        var argDefault = null;
         var argNameArray = argName.split('=');
         if (argNameArray.length > 1) {
             argName = argNameArray[0];
