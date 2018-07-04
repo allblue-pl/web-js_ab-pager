@@ -34,12 +34,53 @@ class Pager
         this._listeners_OnPageSet = {};
     }
 
-    getPageUri(pageName, args = {})
+    getPage(pageName)
     {
-        throw new Error('Not implemented.');
+        js0.args(arguments, 'string');
+
+        if (!this._pages.has(pageName))
+            throw new Error(`Page '${pageName}' does not exist.`);
+
+        return this._pages.get(pageName);
     }
 
-    getUri(uri, args = {}, parsedArgs = null, pathOnly = false)
+    getPageUri(pageName, args = {}, pathOnly = false)
+    {
+        js0.args(arguments, 'string', [ 'object', js0.Default ]);
+
+        let page = this.getPage(pageName);
+
+        return this.parseUri(page.uri, args, null, pathOnly);
+    }
+
+    init()
+    {
+        this._initialized = true;
+
+        window.onpopstate = () => {
+            this._parseUri(window.location.pathname + window.location.search);
+        };
+        this._parseUri(window.location.pathname + window.location.search);
+    }
+
+    page(name, uri, onPageSetListener)
+    {
+        js0.args(arguments, 'string', 'string', 'function');
+
+        this._pages.set(name, new Pager.Page(name, uri));
+        
+        if (onPageSetListener !== null) {
+            this._listeners_OnPageSet[name] = onPageSetListener;
+            // this._listeners_OnPageChanged.push((page, sourcePageName) => {
+            //     if (page.name === name)
+            //         onPageSetListener(sourcePageName);
+            // });
+        }
+
+        return this;
+    }
+
+    parseUri(uri, args = {}, parsedArgs = null, pathOnly = false)
     {
         var uriArgs = uri === '' ? [] : uri.split('/');
         if (uriArgs[uriArgs.length - 1] === '')
@@ -78,33 +119,6 @@ class Pager
             return this._base + pUri;
     }
 
-    init()
-    {
-        this._initialized = true;
-
-        window.onpopstate = () => {
-            this._parseUri(window.location.pathname + window.location.search);
-        };
-        this._parseUri(window.location.pathname + window.location.search);
-    }
-
-    page(name, uri, onPageSetListener)
-    {
-        js0.args(arguments, 'string', 'string', 'function');
-
-        this._pages.set(name, new Pager.Page(name, uri));
-        
-        if (onPageSetListener !== null) {
-            this._listeners_OnPageSet[name] = onPageSetListener;
-            // this._listeners_OnPageChanged.push((page, sourcePageName) => {
-            //     if (page.name === name)
-            //         onPageSetListener(sourcePageName);
-            // });
-        }
-
-        return this;
-    }
-
     setPage(pageName, args = {}, pushState = true)
     {
         js0.args(arguments, 'string', [ js0.Default, 'object' ], [ js0.Default, 'boolean' ]);
@@ -119,7 +133,7 @@ class Pager
             args: {}
         };
 
-        let uri = this.getUri(this._currentPage.uri, args,
+        let uri = this.parseUri(this._currentPage.uri, args,
                 this._currentPageInfo.args);
 
         if (pushState)
