@@ -220,7 +220,7 @@ class Pager
 
                     let uriArgInfo = this._getUriArgInfo(aliasArray[i]);
 
-                    args[uriArgInfo.name] = uriArray[i];
+                    args[uriArgInfo.name] = decodeURIComponent(uriArray[i]);
                     continue;
                 }
 
