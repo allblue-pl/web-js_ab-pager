@@ -107,7 +107,7 @@ class Pager
                 continue;
             }
 
-            pUri += args[argInfo.name] + '/';
+            pUri += encodeURIComponent(args[argInfo.name]) + '/';
 
             if (parsedArgs !== null)
                 parsedArgs[argInfo.name] = String(args[argInfo.name]);
