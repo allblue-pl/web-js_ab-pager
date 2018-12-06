@@ -81,7 +81,10 @@ class Pager
     }
 
     parseUri(uri, args = {}, parsedArgs = null, pathOnly = false)
-    {
+    {   
+        var uriArr = uri.split('?');
+        uri = uriArr[0];
+
         var uriArgs = uri === '' ? [] : uri.split('/');
         if (uriArgs[uriArgs.length - 1] === '')
             uriArgs.pop();
@@ -190,6 +193,9 @@ class Pager
         }
 
         uri = uri.substring(base.length);
+        
+        var uriArr = uri.split('?');
+        uri = uriArr[0];
 
         let uriArray = uri.split('/');
         if (uriArray[uriArray.length - 1] === '')
