@@ -53,6 +53,13 @@ class Pager
         return this.parseUri(page.uri, args, null, pathOnly);
     }
 
+    hasPage(pageName)
+    {
+        js0.args(arguments, 'string');
+
+        return this._pages.has(pageName);
+    }
+
     init()
     {
         this._initialized = true;
