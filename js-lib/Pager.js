@@ -44,13 +44,13 @@ class Pager
         return this._pages.get(pageName);
     }
 
-    getPageUri(pageName, args = {}, pathOnly = false)
+    getPageUri(pageName, args = {}, searchParams = {}, pathOnly = false)
     {
         js0.args(arguments, 'string', [ 'object', js0.Default ]);
 
         let page = this.getPage(pageName);
 
-        return this.parseUri(page.uri, args, null, pathOnly);
+        return this.parseUri(page.uri, args, searchParams, null, null, pathOnly);
     }
 
     hasPage(pageName)
@@ -87,23 +87,25 @@ class Pager
         return this;
     }
 
-    parseUri(uri, args = {}, parsedArgs = null, pathOnly = false)
+    parseUri(uri, args = {}, searchParams = {}, args_Parsed = null, 
+            searchParams_Parsed = null, pathOnly = false)
     {   
-        var uriArr = uri.split('?');
+        let uriArr = uri.split('?');
         uri = uriArr[0];
 
-        var uriArgs = uri === '' ? [] : uri.split('/');
+        /* Uri Args */
+        let uriArgs = uri === '' ? [] : uri.split('/');
         if (uriArgs[uriArgs.length - 1] === '')
             uriArgs.pop();
 
-        var pUri = '';
-        for (var i = 0; i < uriArgs.length; i++) {
+        let pUri = '';
+        for (let i = 0; i < uriArgs.length; i++) {
             if (uriArgs[i][0] !== ':') {
                 pUri += uriArgs[i] + '/';
                 continue;
             }
 
-            var argInfo = this._getUriArgInfo(uriArgs[i]);
+            let argInfo = this._getUriArgInfo(uriArgs[i]);
 
             if (!(argInfo.name in args)) {
                 if (argInfo.defaultValue === null)
@@ -111,17 +113,26 @@ class Pager
 
                 pUri += argInfo.defaultValue + '/';
 
-                if (parsedArgs !== null)
-                    parsedArgs[argInfo.name] = null;
+                if (args_Parsed !== null)
+                    args_Parsed[argInfo.name] = null;
 
                 continue;
             }
 
             pUri += encodeURIComponent(args[argInfo.name]) + '/';
 
-            if (parsedArgs !== null)
-                parsedArgs[argInfo.name] = String(args[argInfo.name]);
+            if (args_Parsed !== null)
+                args_Parsed[argInfo.name] = String(args[argInfo.name]);
         }
+
+        /* Search Params */
+        let search = '';
+        for (let searchParam_Name in searchParams) {
+            search += (search === '' ? '?' : '&') + searchParam_Name + '=' +
+                    searchParams[searchParam_Name];
+        }
+
+        pUri += search;
 
         if (pathOnly)
             return pUri;
@@ -129,36 +140,40 @@ class Pager
             return this._base + pUri;
     }
 
-    setPage(pageName, args = {}, pushState = true)
+    setPage(pageName, args = {}, searchParams = {}, pushState = true)
     {
-        js0.args(arguments, 'string', [ js0.Default, 'object' ], [ js0.Default, 'boolean' ]);
+        js0.args(arguments, 'string', [ js0.Default, 'object' ], 
+                [ js0.Default, 'object' ], [ js0.Default, 'boolean' ]);
 
         if (!this._pages.has(pageName))
             throw new Error('Page `' + pageName + '` does not exist.`');
 
         let source = this._currentPage;
         this._currentPage = this._pages.get(pageName);
+
+        let uri = this.parseUri(this._currentPage.uri, args, searchParams);
+
         this._currentPageInfo = {
             name: pageName,
-            args: {}
+            args: args,
+            searchParams: searchParams,
         };
-
-        let uri = this.parseUri(this._currentPage.uri, args,
-                this._currentPageInfo.args);
 
         if (pushState)
             window.history.pushState({}, this._currentPage.title, uri);
         else
             window.history.replaceState({}, this._currentPage.title, uri);
 
-        let currentPage = {
-            name: this._currentPageInfo.name,
-            args: this._currentPageInfo.args,
-        };
+        // let currentPage = {
+        //     name: this._currentPageInfo.name,
+        //     args: this._currentPageInfo.args,
+        //     searchParams: this._currentPageInfo.searchParams,
+        // };
+
         for (let i = 0; i < this._listeners_OnPageChanged.length; i++)
-            this._listeners_OnPageChanged[i](currentPage, source);
-        if (currentPage.name in this._listeners_OnPageSet)
-            this._listeners_OnPageSet[currentPage.name]();
+            this._listeners_OnPageChanged[i](this._currentPageInfo, source);
+        if (this._currentPageInfo.name in this._listeners_OnPageSet)
+            this._listeners_OnPageSet[this._currentPageInfo.name]();
     }
 
     setUri(uri, pushState)
@@ -170,9 +185,9 @@ class Pager
 
     _getUriArgInfo(uriArg)
     {
-        var argName = uriArg.substring(1);
-        var argDefault = null;
-        var argNameArray = argName.split('=');
+        let argName = uriArg.substring(1);
+        let argDefault = null;
+        let argNameArray = argName.split('=');
         if (argNameArray.length > 1) {
             argName = argNameArray[0];
             argDefault = argNameArray[1];
@@ -201,8 +216,19 @@ class Pager
 
         uri = uri.substring(base.length);
         
-        var uriArr = uri.split('?');
+        let uriArr = uri.split('?');
         uri = uriArr[0];
+        let search = uriArr.length === 1 ? '' : uriArr[1];
+
+        let searchParams = {};
+        let searchArr = search.split('&');
+        for (let searchParam of searchArr) {
+            let searchParamArr = searchParam.split('=');
+            if (searchParamArr.length < 2)
+                continue;
+            
+            searchParams[searchParamArr[0]] = searchParamArr[1];
+        }
 
         let uriArray = uri.split('/');
         if (uriArray[uriArray.length - 1] === '')
@@ -246,7 +272,7 @@ class Pager
             if (!uriMatched)
                 continue;
 
-            this.setPage(page.name, args, pushState);
+            this.setPage(page.name, args, searchParams, pushState);
             return;
         }
 
