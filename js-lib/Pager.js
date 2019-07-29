@@ -172,8 +172,11 @@ class Pager
 
         for (let i = 0; i < this._listeners_OnPageChanged.length; i++)
             this._listeners_OnPageChanged[i](this._currentPageInfo, source);
-        if (this._currentPageInfo.name in this._listeners_OnPageSet)
-            this._listeners_OnPageSet[this._currentPageInfo.name]();
+        if (this._currentPageInfo.name in this._listeners_OnPageSet) {
+            this._listeners_OnPageSet[this._currentPageInfo.name](
+                    this._currentPageInfo, source);
+
+        }
     }
 
     setUri(uri, pushState)
