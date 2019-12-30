@@ -32,6 +32,8 @@ class Pager
 
         this._listeners_OnPageChanged = [];
         this._listeners_OnPageSet = {};
+
+        this._listeners_NotFound = null;
     }
 
     getPage(pageName)
@@ -68,6 +70,13 @@ class Pager
             this._parseUri(window.location.pathname + window.location.search);
         };
         this._parseUri(window.location.pathname + window.location.search);
+    }
+
+    notFound(notFoundListener)
+    {
+        js0.args(arguments, 'function');
+
+        this._listeners_NotFound = notFoundListener;
     }
 
     page(name, uri, onPageSetListener)
@@ -153,11 +162,7 @@ class Pager
 
         let uri = this.parseUri(this._currentPage.uri, args, searchParams);
 
-        this._currentPageInfo = {
-            name: pageName,
-            args: args,
-            searchParams: searchParams,
-        };
+        this._currentPageInfo = new Pager.PageInfo(pageName, args, searchParams);
 
         if (pushState)
             window.history.pushState({}, this._currentPage.title, uri);
@@ -279,7 +284,10 @@ class Pager
             return;
         }
 
-        throw new Error('Cannot parse uri. No page found.');
+        if (this._listeners_NotFound === null)
+            throw new Error('Cannot parse uri. No page found.');
+        else
+            this._listeners_NotFound(uri, pushState);
     }
 
 }
@@ -298,6 +306,39 @@ Object.defineProperties(Pager, {
             });
         }
 
+    }},
+
+    PageInfo: { value:
+    class Pager_PageInfo {
+
+        get args() {
+            let argsR = {};
+            for (let argName in this._args)
+                argsR[argName] = this._args[argName];
+
+            return argsR;
+        }
+
+        get name() {
+            return this._name;
+        }
+
+        get searchParams() {
+            let searchParamsR = {};
+            for (let searchParamsName in this._searchParams)
+                searchParams[searchParamsName] = this._searchParams[argName];
+
+            return searchParamsR;
+        }
+
+
+        constructor(pageName, args, searchParams)
+        {
+            this._name = pageName;
+            this._args = args;
+            this._searchParams = searchParams;
+        }
+        
     }},
 
 });
