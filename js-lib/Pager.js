@@ -32,8 +32,14 @@ class Pager
 
         this._listeners_OnPageChanged = [];
         this._listeners_OnPageSet = {};
+        this._listeners_OnBeforePageSet = [];
 
         this._listeners_NotFound = null;
+    }
+
+    addListener_OnBeforePageSet(listenerFn)
+    {
+        this._listeners_OnBeforePageSet.push(listenerFn);
     }
 
     getPage(pageName)
@@ -149,6 +155,18 @@ class Pager
             return this._base + pUri;
     }
 
+    removeListener_OnBeforePageSet(listenerFn)
+    {
+        for (let i = 0; i < this._listeners_OnBeforePageSet.length; i++) {
+            if (this._listeners_OnBeforePageSet[i] === listenerFn) {
+                this._listeners_OnBeforePageSet.splice(i, 1);
+                return;
+            }
+        }
+
+        throw new Error(`Listener function does not exist.`);
+    }
+
     setPage(pageName, args = {}, searchParams = {}, pushState = true)
     {
         js0.args(arguments, 'string', [ js0.Default, 'object' ], 
@@ -156,6 +174,11 @@ class Pager
 
         if (!this._pages.has(pageName))
             throw new Error('Page `' + pageName + '` does not exist.`');
+
+        for (let listenerFn of this._listeners_OnBeforePageSet) {
+            if (listenerFn(pageName, args, searchParams, pushState) === false)
+                return;
+        }
 
         let source = this._currentPage;
         this._currentPage = this._pages.get(pageName);
