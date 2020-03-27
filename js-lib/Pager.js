@@ -127,6 +127,7 @@ class Pager
                     throw new Error(`Uri arg '${argInfo.name}' not set.`);
 
                 pUri += argInfo.defaultValue + '/';
+                args[argInfo.name] = argInfo.defaultValue;
 
                 if (args_Parsed !== null)
                     args_Parsed[argInfo.name] = null;
