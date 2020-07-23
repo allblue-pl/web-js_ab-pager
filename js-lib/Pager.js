@@ -20,11 +20,12 @@ class Pager
     }
 
 
-    constructor(base = '/')
+    constructor(base = '/', useState = true)
     {
         this._initialized = false;
 
         this._base = base;
+        this._useState = useState;
         this._pages = new Map();
 
         this._currentPage = null;
@@ -52,6 +53,87 @@ class Pager
         return this._pages.get(pageName);
     }
 
+    getPageInfo_FromUri(uri)
+    {
+        if (this._pages.size === 0)
+            throw new Error('Cannot parse uri. No pages set.');
+
+        let base = this._base;
+        base = base.substring(0, base.length);
+
+        if (uri.indexOf(base) !== 0) {
+            window.location = base;
+            return null;
+        }
+
+        uri = uri.substring(base.length);
+        
+        let uriArr = uri.split('?');
+        uri = uriArr[0];
+        let search = uriArr.length === 1 ? '' : uriArr[1];
+
+        let searchParams = {};
+        let searchArr = search.split('&');
+        for (let searchParam of searchArr) {
+            let searchParamArr = searchParam.split('=');
+            if (searchParamArr.length < 2)
+                continue;
+            
+            searchParams[searchParamArr[0]] = searchParamArr[1];
+        }
+
+        let uriArray = uri.split('/');
+        if (uriArray[uriArray.length - 1] === '')
+            uriArray.pop();
+
+        if (uriArray.length === 0)
+            uriArray.push('');
+
+        for (let [ pageName, page ] of this._pages) {
+            let aliasArray = page.uri.split('/');
+
+            if (aliasArray.length !== uriArray.length)
+                continue;
+
+            let args = {};
+            let uriMatched = true;
+            for (let i = 0; i < aliasArray.length; i++) {
+                if (aliasArray[i] === '') {
+                    uriMatched = uriArray[i] === '';
+                    break;
+                }
+
+                if (aliasArray[i][0] === ':') {
+                    if (aliasArray[i][0] === 1) {
+                        uriMatched = false;
+                        break;
+                    }
+
+                    let uriArgInfo = this._getUriArgInfo(aliasArray[i]);
+
+                    args[uriArgInfo.name] = decodeURIComponent(uriArray[i]);
+                    continue;
+                }
+
+                if (aliasArray[i] !== uriArray[i]) {
+                    uriMatched = false;
+                    break;
+                }
+            }
+
+            if (!uriMatched)
+                continue;
+
+            return {
+                name: page.name,
+                args: args,
+                searchParams: searchParams,
+            };
+        }
+
+        return null;
+    }
+
     getPageUri(pageName, args = {}, searchParams = {}, pathOnly = false)
     {
         js0.args(arguments, 'string', [ 'object', js0.Default ]);
@@ -68,14 +150,22 @@ class Pager
         return this._pages.has(pageName);
     }
 
-    init()
+    init(setPage = true)
     {
         this._initialized = true;
 
-        window.onpopstate = () => {
-            this._parseUri(window.location.pathname + window.location.search);
-        };
-        this._parseUri(window.location.pathname + window.location.search);
+        if (this._useState) {
+            window.onpopstate = () => {
+                this._parseUri(window.location.pathname + window.location.search, false);
+            };
+        }
+
+        let pageInfo = this.getPageInfo_FromUri(window.location.pathname + 
+                window.location.search);
+        if (!setPage)
+            return pageInfo;
+
+        this.setPageInfo(pageInfo, false);
     }
 
     notFound(notFoundListener)
@@ -168,10 +258,11 @@ class Pager
         throw new Error(`Listener function does not exist.`);
     }
 
-    setPage(pageName, args = {}, searchParams = {}, pushState = true)
+    setPage(pageName, args = {}, searchParams = {}, pushState = true, pageArgs = {})
     {
         js0.args(arguments, 'string', [ js0.Default, 'object' ], 
-                [ js0.Default, 'object' ], [ js0.Default, 'boolean' ]);
+                [ js0.Default, 'object' ], [ js0.Default, 'boolean' ], 
+                [ js0.Default, js0.RawObject ]);
 
         if (!this._pages.has(pageName))
             throw new Error('Page `' + pageName + '` does not exist.`');
@@ -188,10 +279,12 @@ class Pager
 
         this._currentPageInfo = new Pager.PageInfo(pageName, args, searchParams);
 
-        if (pushState)
-            window.history.pushState({}, this._currentPage.title, uri);
-        else
-            window.history.replaceState({}, this._currentPage.title, uri);
+        if (this._useState) {
+            if (pushState)
+                window.history.pushState({}, this._currentPage.title, uri);
+            else
+                window.history.replaceState({}, this._currentPage.title, uri);
+        }
 
         // let currentPage = {
         //     name: this._currentPageInfo.name,
@@ -203,14 +296,27 @@ class Pager
             this._listeners_OnPageChanged[i](this._currentPageInfo, source);
         if (this._currentPageInfo.name in this._listeners_OnPageSet) {
             this._listeners_OnPageSet[this._currentPageInfo.name](
-                    this._currentPageInfo, source);
+                    this._currentPageInfo, source, pageArgs);
 
         }
     }
 
-    setUri(uri, pushState)
+    setPageInfo(pageInfo, pushState = false)
     {
-        pushState = typeof pushState === 'undefined' ? true : pushState;
+        js0.args(arguments, js0.RawObject, [ 'boolean', js0.Default ]);
+
+        if (pageInfo === null) {
+            if (this._listeners_NotFound === null)
+                throw new Error('Cannot parse uri. No page found.');
+            else
+                this._listeners_NotFound(uri, pushState);
+        }
+
+        this.setPage(pageInfo.name, pageInfo.args, pageInfo.searchParams, pushState);
+    }
+
+    setUri(uri, pushState = true)
+    {
         this._parseUri(uri, pushState);
     }
 
@@ -233,85 +339,9 @@ class Pager
 
     _parseUri(uri, pushState)
     {
-        pushState = typeof pushState === 'undefined' ? false : pushState;
+        let pageInfo = this.getPageInfo_FromUri(uri);
 
-        if (this._pages.size === 0)
-            throw new Error('Cannot parse uri. No pages set.');
-
-        let base = this._base;
-        base = base.substring(0, base.length);
-
-        if (uri.indexOf(base) !== 0) {
-            window.location = base;
-            return;
-        }
-
-        uri = uri.substring(base.length);
-        
-        let uriArr = uri.split('?');
-        uri = uriArr[0];
-        let search = uriArr.length === 1 ? '' : uriArr[1];
-
-        let searchParams = {};
-        let searchArr = search.split('&');
-        for (let searchParam of searchArr) {
-            let searchParamArr = searchParam.split('=');
-            if (searchParamArr.length < 2)
-                continue;
-            
-            searchParams[searchParamArr[0]] = searchParamArr[1];
-        }
-
-        let uriArray = uri.split('/');
-        if (uriArray[uriArray.length - 1] === '')
-            uriArray.pop();
-
-        if (uriArray.length === 0)
-            uriArray.push('');
-
-        for (let [ pageName, page ] of this._pages) {
-            let aliasArray = page.uri.split('/');
-
-            if (aliasArray.length !== uriArray.length)
-                continue;
-
-            let args = {};
-            let uriMatched = true;
-            for (let i = 0; i < aliasArray.length; i++) {
-                if (aliasArray[i] === '') {
-                    uriMatched = uriArray[i] === '';
-                    break;
-                }
-
-                if (aliasArray[i][0] === ':') {
-                    if (aliasArray[i][0] === 1) {
-                        uriMatched = false;
-                        break;
-                    }
-
-                    let uriArgInfo = this._getUriArgInfo(aliasArray[i]);
-
-                    args[uriArgInfo.name] = decodeURIComponent(uriArray[i]);
-                    continue;
-                }
-
-                if (aliasArray[i] !== uriArray[i]) {
-                    uriMatched = false;
-                    break;
-                }
-            }
-
-            if (!uriMatched)
-                continue;
-
-            this.setPage(page.name, args, searchParams, pushState);
-            return;
-        }
-
-        if (this._listeners_NotFound === null)
-            throw new Error('Cannot parse uri. No page found.');
-        else
-            this._listeners_NotFound(uri, pushState);
+        this.setPageInfo(pageInfo, pushState);
     }
 
 }
