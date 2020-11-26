@@ -269,7 +269,7 @@ class Pager
 
         let args_Parsed = {};
         for (let argName in args)
-            args_Parsed = String(args[argName]);
+            args_Parsed[argName] = String(args[argName]);
         args = args_Parsed;
 
         for (let listenerFn of this._listeners_OnBeforePageSet) {
