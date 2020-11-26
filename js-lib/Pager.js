@@ -267,6 +267,11 @@ class Pager
         if (!this._pages.has(pageName))
             throw new Error('Page `' + pageName + '` does not exist.`');
 
+        let args_Parsed = {};
+        for (let argName in args)
+            args_Parsed = String(args[argName]);
+        args = args_Parsed;
+
         for (let listenerFn of this._listeners_OnBeforePageSet) {
             if (listenerFn(pageName, args, searchParams, pushState) === false)
                 return;
