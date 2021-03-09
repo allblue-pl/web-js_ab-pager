@@ -56,7 +56,7 @@ class Pager
     getPageInfo_FromUri(uri)
     {
         if (this._pages.size === 0)
-            throw new Error('Cannot parse uri. No pages set.');
+            throw new Error(`Cannot parse uri '${uri}'. No pages set.`);
 
         let base = this._base;
         base = base.substring(0, base.length);
@@ -160,12 +160,12 @@ class Pager
             };
         }
 
-        let pageInfo = this.getPageInfo_FromUri(window.location.pathname + 
-                window.location.search);
+        let uri = window.location.pathname + window.location.search;
+        let pageInfo = this.getPageInfo_FromUri(uri);
         if (!setPage)
             return pageInfo;
 
-        this.setPageInfo(pageInfo, false);
+        this._setPageInfo(pageInfo, false, uri);
     }
 
     notFound(notFoundListener)
@@ -306,20 +306,6 @@ class Pager
         }
     }
 
-    setPageInfo(pageInfo, pushState = false)
-    {
-        js0.args(arguments, js0.RawObject, [ 'boolean', js0.Default ]);
-
-        if (pageInfo === null) {
-            if (this._listeners_NotFound === null)
-                throw new Error('Cannot parse uri. No page found.');
-            else
-                this._listeners_NotFound(uri, pushState);
-        }
-
-        this.setPage(pageInfo.name, pageInfo.args, pageInfo.searchParams, pushState);
-    }
-
     setUri(uri, pushState = true)
     {
         this._parseUri(uri, pushState);
@@ -346,7 +332,21 @@ class Pager
     {
         let pageInfo = this.getPageInfo_FromUri(uri);
 
-        this.setPageInfo(pageInfo, pushState);
+        this._setPageInfo(pageInfo, pushState, uri);
+    }
+
+    _setPageInfo(pageInfo, pushState, uri)
+    {
+        js0.args(arguments, js0.RawObject, [ 'boolean', js0.Default ], 'string');
+
+        if (pageInfo === null) {
+            if (this._listeners_NotFound === null)
+                throw new Error(`Cannot parse uri '${uri}'. No page found.`);
+            else
+                this._listeners_NotFound(uri, pushState);
+        }
+
+        this.setPage(pageInfo.name, pageInfo.args, pageInfo.searchParams, pushState);
     }
 
 }
