@@ -344,9 +344,9 @@ class Pager
                 throw new Error(`Cannot parse uri '${uri}'. No page found.`);
             else
                 this._listeners_NotFound(uri, pushState);
+        } else {
+            this.setPage(pageInfo.name, pageInfo.args, pageInfo.searchParams, pushState);
         }
-
-        this.setPage(pageInfo.name, pageInfo.args, pageInfo.searchParams, pushState);
     }
 
 }
