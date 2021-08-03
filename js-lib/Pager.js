@@ -308,6 +308,13 @@ class Pager
 
     setUri(uri, pushState = true)
     {
+        let uriArr = uri.split('/');
+        let uriArr_Encoded = [];
+        for (let uriPart of uriArr) {
+            uriArr_Encoded.push(encodeURIComponent(uriPart));
+        }
+        uri = uriArr_Encoded.join('/');
+
         this._parseUri(uri, pushState);
     }
 
