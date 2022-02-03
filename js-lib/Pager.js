@@ -86,20 +86,28 @@ class Pager
         if (uriArray[uriArray.length - 1] === '')
             uriArray.pop();
 
-        if (uriArray.length === 0)
-            uriArray.push('');
+        // if (uriArray.length === 0 && !page.extraArg)
+        //     uriArray.push('');
 
         for (let [ pageName, page ] of this._pages) {
             let aliasArray = page.uri.split('/');
+            if (aliasArray[aliasArray.length - 1] === '')
+                aliasArray.pop();
 
-            if (aliasArray.length !== uriArray.length)
-                continue;
+            if (page.extraArg) {
+                if (aliasArray.length > uriArray.length)
+                    continue;
+            } else {
+                if (aliasArray.length !== uriArray.length)
+                    continue;
+            }
 
             let args = {};
             let uriMatched = true;
+
             for (let i = 0; i < aliasArray.length; i++) {
-                if (aliasArray[i] === '') {
-                    uriMatched = uriArray[i] === '';
+                if (uriArray[i] === '') {
+                    uriMatched = aliasArray[i] === '';
                     break;
                 }
 
@@ -123,6 +131,9 @@ class Pager
 
             if (!uriMatched)
                 continue;
+
+            if (page.extraArg)
+                args['*'] = uriArray.slice(aliasArray.length).join('/');
 
             return {
                 name: page.name,
@@ -175,11 +186,11 @@ class Pager
         this._listeners_NotFound = notFoundListener;
     }
 
-    page(name, uri, onPageSetListener)
+    page(name, uri, onPageSetListener = null)
     {
-        js0.args(arguments, 'string', 'string', 'function');
+        js0.args(arguments, 'string', 'string', [ 'function', js0.Null ]);
 
-        this._pages.set(name, new Pager.Page(name, uri));
+        this._pages.set(name, new Pager.Page(name, uri, onPageSetListener));
         
         if (onPageSetListener !== null) {
             this._listeners_OnPageSet[name] = onPageSetListener;
@@ -230,6 +241,8 @@ class Pager
             if (args_Parsed !== null)
                 args_Parsed[argInfo.name] = String(args[argInfo.name]);
         }
+        if ('*' in args) 
+            pUri += args['*'];
 
         /* Search Params */
         let search = '';
@@ -258,7 +271,8 @@ class Pager
         throw new Error(`Listener function does not exist.`);
     }
 
-    setPage(pageName, args = {}, searchParams = {}, pushState = true, pageArgs = {})
+    setPage(pageName, args = {}, searchParams = {}, pushState = true, 
+            pageArgs = {})
     {
         js0.args(arguments, 'string', [ js0.Default, 'object' ], 
                 [ js0.Default, 'object' ], [ js0.Default, 'boolean' ], 
@@ -286,9 +300,9 @@ class Pager
 
         if (this._useState) {
             if (pushState)
-                window.history.pushState({}, this._currentPage.title, uri);
+                window.history.pushState({}, '', uri);
             else
-                window.history.replaceState({}, this._currentPage.title, uri);
+                window.history.replaceState({}, '', uri);
         }
 
         // let currentPage = {
@@ -345,7 +359,8 @@ class Pager
             else
                 this._listeners_NotFound(uri, pushState);
         } else {
-            this.setPage(pageInfo.name, pageInfo.args, pageInfo.searchParams, pushState);
+            this.setPage(pageInfo.name, pageInfo.args, pageInfo.searchParams, 
+                    pushState);
         }
     }
 
@@ -358,10 +373,30 @@ Object.defineProperties(Pager, {
     class Pager_Page {
 
         constructor(name, uri, onPageSetListener) {
+            let extraArg = false;
+
+            if (uri.indexOf('*') !== -1) {
+                extraArg = true;
+
+                if (uri.indexOf('*') !== uri.length - 1) 
+                    throw new Error(`'*' must be the last character of uri.`);
+
+                if (uri.indexOf('*') === uri.length - 1) {
+                    if (uri.length === 1) {
+                        uri = '';
+                    } else {
+                        if (uri.indexOf('/*') !== uri.length - 2)
+                            throw new Error(`'*' must be a separate uri element.`);
+                        uri = uri.substring(0, uri.length - 2);
+                    }
+                }
+            }
+
             Object.defineProperties(this, {
                 name: { value: name, },
                 uri: { value: uri, },
                 onPageSetListener: { value: onPageSetListener, },
+                extraArg: { value: extraArg, },
             });
         }
 
