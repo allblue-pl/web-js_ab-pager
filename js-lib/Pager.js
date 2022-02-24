@@ -419,8 +419,8 @@ Object.defineProperties(Pager, {
 
         get searchParams() {
             let searchParamsR = {};
-            for (let searchParamsName in this._searchParams)
-                searchParams[searchParamsName] = this._searchParams[argName];
+            for (let searchParamName in this._searchParams)
+                searchParamsR[searchParamName] = this._searchParams[searchParamName];
 
             return searchParamsR;
         }
