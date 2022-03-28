@@ -147,7 +147,8 @@ class Pager
 
     getPageUri(pageName, args = {}, searchParams = {}, pathOnly = false)
     {
-        js0.args(arguments, 'string', [ 'object', js0.Default ]);
+        js0.args(arguments, 'string', [ 'object', js0.Default ], 
+                [ 'object', js0.Default ], [ 'boolean', js0.Default ]);
 
         let page = this.getPage(pageName);
 
