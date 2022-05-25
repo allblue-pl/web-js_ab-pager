@@ -260,6 +260,13 @@ class Pager
             return this._base + pUri;
     }
 
+    parseUri_PathOnly(uri, args = {}, searchParams = {}, args_Parsed = null, 
+        searchParams_Parsed = null)
+    {   
+        return this.parseUri(uri, args, searchParams, args_Parsed, 
+                searchParams_Parsed, true);
+    }
+
     removeListener_OnBeforePageSet(listenerFn)
     {
         for (let i = 0; i < this._listeners_OnBeforePageSet.length; i++) {
