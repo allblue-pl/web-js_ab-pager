@@ -43,6 +43,13 @@ class Pager
         this._listeners_OnBeforePageSet.push(listenerFn);
     }
 
+    clearPages()
+    {
+        this._pages.clear();
+
+        return this;
+    }
+
     getPage(pageName)
     {
         js0.args(arguments, 'string');
