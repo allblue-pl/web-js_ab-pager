@@ -239,7 +239,7 @@ class Pager
                 args[argInfo.name] = argInfo.defaultValue;
 
                 if (args_Parsed !== null)
-                    args_Parsed[argInfo.name] = null;
+                    args_Parsed[argInfo.name] = String(args[argInfo.name]);
 
                 continue;
             }
@@ -286,7 +286,7 @@ class Pager
         throw new Error(`Listener function does not exist.`);
     }
 
-    setPage(pageName, args = {}, searchParams = {}, pushState = true, 
+    setPage(pageName, uriArgs = {}, searchParams = {}, pushState = true, 
             pageArgs = {})
     {
         js0.args(arguments, 'string', [ js0.Default, 'object' ], 
@@ -296,22 +296,25 @@ class Pager
         if (!this._pages.has(pageName))
             throw new Error('Page `' + pageName + '` does not exist.`');
 
-        let args_Parsed = {};
-        for (let argName in args)
-            args_Parsed[argName] = String(args[argName]);
-        args = args_Parsed;
+        for (let argName in uriArgs) {
+            uriArgs[argName] = uriArgs[argName] === null ? 
+                null : String(uriArgs[argName]);
+        }
+
+        let newPage = this._pages.get(pageName);
+        let uriArgs_Parsed = {};
+        let uri = this.parseUri(newPage.uri, uriArgs, searchParams, uriArgs_Parsed);
+        uriArgs = uriArgs_Parsed;
 
         for (let listenerFn of this._listeners_OnBeforePageSet) {
-            if (listenerFn(pageName, args, searchParams, pushState) === false)
+            if (listenerFn(pageName, uriArgs, searchParams, pushState) === false)
                 return;
         }
 
         let source = this._currentPage;
-        this._currentPage = this._pages.get(pageName);
+        this._currentPage = newPage;
 
-        let uri = this.parseUri(this._currentPage.uri, args, searchParams);
-
-        this._currentPageInfo = new Pager.PageInfo(pageName, args, searchParams);
+        this._currentPageInfo = new Pager.PageInfo(pageName, uriArgs, searchParams);
 
         if (this._useState) {
             if (pushState)
