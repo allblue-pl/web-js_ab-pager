@@ -43,6 +43,10 @@ class Pager
         this._listeners_OnBeforePageSet.push(listenerFn);
     }
 
+    addListener_OnPageChanged(listenerFn) {
+        this._listeners_OnPageChanged.push(listenerFn);
+    }
+
     clearPages()
     {
         this._pages.clear();
@@ -287,11 +291,13 @@ class Pager
     }
 
     setPage(pageName, uriArgs = {}, searchParams = {}, pushState = true, 
-            pageArgs = {})
+            pageArgs = {}, skipOnPageChangedListener = false, 
+            skipOnPageSetListener = false)
     {
         js0.args(arguments, 'string', [ js0.Default, 'object' ], 
                 [ js0.Default, 'object' ], [ js0.Default, 'boolean' ], 
-                [ js0.Default, js0.RawObject ]);
+                [ js0.Default, js0.RawObject ], [ js0.Default, 'boolean' ],
+                [ js0.Default, 'boolean' ]);
 
         if (!this._pages.has(pageName))
             throw new Error('Page `' + pageName + '` does not exist.`');
@@ -329,12 +335,16 @@ class Pager
         //     searchParams: this._currentPageInfo.searchParams,
         // };
 
-        for (let i = 0; i < this._listeners_OnPageChanged.length; i++)
-            this._listeners_OnPageChanged[i](this._currentPageInfo, source);
-        if (this._currentPageInfo.name in this._listeners_OnPageSet) {
-            this._listeners_OnPageSet[this._currentPageInfo.name](
-                    this._currentPageInfo, source, pageArgs);
+        if (!skipOnPageChangedListener) {
+            for (let i = 0; i < this._listeners_OnPageChanged.length; i++)
+                this._listeners_OnPageChanged[i](this._currentPageInfo, source);
+        }
 
+        if (!skipOnPageSetListener) {
+            if (this._currentPageInfo.name in this._listeners_OnPageSet) {
+                this._listeners_OnPageSet[this._currentPageInfo.name](
+                        this._currentPageInfo, source, pageArgs);
+            }
         }
     }
 
