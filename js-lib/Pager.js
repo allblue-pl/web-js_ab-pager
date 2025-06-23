@@ -36,6 +36,7 @@ class Pager
         this._listeners_OnBeforePageSet = [];
 
         this._listeners_NotFound = null;
+        this._listeners_OnBeforePopState = null;
     }
 
     addListener_OnBeforePageSet(listenerFn)
@@ -179,7 +180,13 @@ class Pager
 
         if (this._useState) {
             window.onpopstate = () => {
-                this._parseUri(window.location.pathname + window.location.search, false);
+                let uri_PopState = window.location.pathname + 
+                        window.location.search;
+                if (this._listeners_OnBeforePopState !== null) {
+                    if (!this._listeners_OnBeforePopState(uri_PopState))
+                        return;
+                }
+                this._parseUri(uri_PopState, false);
             };
         }
 
@@ -346,6 +353,10 @@ class Pager
                         this._currentPageInfo, source, pageArgs);
             }
         }
+    }
+
+    setListener_OnBeforePopState(listenerFn) {
+        this._listeners_OnBeforePopState = listenerFn;
     }
 
     setUri(uri, pushState = true)
