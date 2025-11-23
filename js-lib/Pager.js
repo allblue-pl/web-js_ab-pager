@@ -179,6 +179,18 @@ class Pager
         this._initialized = true;
 
         if (this._useState) {
+            window.onpageshow = (evt) => {
+                if (!evt.persisted)
+                    return;
+
+                let uri_PopState = window.location.pathname + 
+                        window.location.search;
+                if (this._listeners_OnBeforePopState !== null) {
+                    if (!this._listeners_OnBeforePopState(uri_PopState))
+                        return;
+                }
+                this._parseUri(uri_PopState, false);
+            };
             window.onpopstate = () => {
                 let uri_PopState = window.location.pathname + 
                         window.location.search;
