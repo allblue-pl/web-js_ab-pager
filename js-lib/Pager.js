@@ -402,7 +402,7 @@ class Pager
 
     _setPageInfo(pageInfo, pushState, uri)
     {
-        js0.args(arguments, js0.RawObject, [ 'boolean', js0.Default ], 'string');
+        js0.args(arguments, [ js0.TRawObject, js0.TNull ], [ 'boolean', js0.Default ], 'string');
 
         if (pageInfo === null) {
             if (this._listeners_NotFound === null)
